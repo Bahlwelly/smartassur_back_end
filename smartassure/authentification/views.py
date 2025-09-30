@@ -11,6 +11,7 @@ from rest_framework_simplejwt.tokens import RefreshToken
 @api_view(['post'])
 @permission_classes([AllowAny])
 def register_user_view (request) :
+    print(request.data)
     serializer = UserRegisterSerializer(data = request.data)
     if serializer.is_valid():
         user = serializer.save()
@@ -25,7 +26,7 @@ def register_user_view (request) :
                 "role" : user.role
             }
         }, status=status.HTTP_201_CREATED)
-    
+    print(serializer.errors)
     return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
 
 
