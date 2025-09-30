@@ -1,0 +1,127 @@
+from django.shortcuts import render
+from .models import Company, InsuranceCategory
+from .serializers import CompanySerializer, InsuranceCategorySerializer
+from  rest_framework.decorators import api_view, permission_classes
+from authentification.permissions import IsAdmin, IsManager, IsClient
+from rest_framework.response import Response
+from rest_framework import status
+
+# Create your views here.
+@api_view(['post'])
+@permission_classes([IsAdmin | IsManager])
+def addCompanyView (request) :
+    serializer = CompanySerializer(data = request.data)
+
+    if serializer.is_valid() : 
+        company = serializer.save()
+        request.user.company = company
+        request.user.save()
+
+        return Response({
+            "message" : "new company added successfully",
+            "company" : {
+                "name" : company.name,
+                "description" : company.description,
+                "location" : company.location,
+                "website" : company.website,
+                "phone" : company.phone,
+                "email" : company.email,
+                "managers": [
+                    {"id": u.id, "name": f"{u.first_name} {u.last_name}", "email": u.email} 
+                    for u in company.managers.all()
+                ],
+                "categories" : [
+                    {"id" : cat.id, "name" : cat.name}
+                    for cat in company.categories.all()
+                ]
+            }
+        }, status=status.HTTP_201_CREATED)
+    return Response({
+        "message" : "Error in the creation",
+        "errors" : serializer.errors
+    }, status=status.HTTP_400_BAD_REQUEST)
+
+
+@api_view(['put'])
+@permission_classes([IsAdmin | IsManager])
+def updateCompanyView (request, pk) :
+    try : 
+        comp = Company.objects.get(pk = pk)
+    except Company.DoesNotExist :
+        return Response({
+            "error" : "not found"
+        }, status=status.HTTP_404_NOT_FOUND)
+    
+
+    if comp == request.user.company :
+        serializer = CompanySerializer(comp, data = request.data, partial = True)
+        if serializer.is_valid() :
+            serializer.save()
+            return Response(serializer.data)
+
+        return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
+    
+    return Response({"message" : "you aren't authrized to do that"}, status=status.HTTP_403_FORBIDDEN)
+
+
+
+@api_view(['delete'])
+@permission_classes([IsAdmin | IsManager])
+def delete_comapny (request, pk) :
+    try : 
+        company = Company.objects.get(pk = pk)
+    except Company.DoesNotExist :
+        return Response({
+            "error" : "Company not found"
+        }, status = status.HTTP_404_NOT_FOUND)
+    
+    if company == request.user.company :
+        company.delete()
+        return Response({
+            "message" : "Company removed successfully"
+        }, status=status.HTTP_200_OK)
+    
+    return Response({
+        "message" : "you aren't autherized to delete this company"
+    }, status=status.HTTP_403_FORBIDDEN)
+
+
+@api_view(['get'])
+@permission_classes([IsAdmin | IsClient])
+def get_all_companies (request) :
+    companies = Company.objects.all()
+    serializer = CompanySerializer(companies, many=True)
+
+    return Response(serializer.data, status=status.HTTP_200_OK)
+
+
+
+@api_view(['get'])
+@permission_classes([IsAdmin | IsClient])
+def get_company_details (request, pk) :
+    company = Company.objects.get(pk=pk)
+    if company == request.user.company :
+        serializer = CompanySerializer(company)
+        return Response(serializer.data, status=status.HTTP_200_OK)
+
+    return Response({
+        "message" : "you are unotherized to see that"
+    }, status=status.HTTP_200_OK)
+    
+
+
+
+@api_view(['post'])
+@permission_classes([IsAdmin])
+def addCategorie (request) : 
+    serializer = InsuranceCategorySerializer(data = request.data)
+
+    if serializer.is_valid() :
+        category = serializer.save()
+        return Response({
+            "message" : "new categorie added successfully",
+            "category" : InsuranceCategorySerializer(category).data
+        }, status=status.HTTP_201_CREATED)
+    
+    return Response( serializer.errors ,status=status.HTTP_400_BAD_REQUEST)
+

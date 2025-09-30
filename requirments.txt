@@ -1,0 +1,8 @@
+Django>=5.0
+djangorestframework
+djangorestframework-simplejwt
+django-cors-headers
+python-decouple
+psycopg2-binary
+django-filter
+drf-spectacular

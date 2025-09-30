@@ -1,0 +1,32 @@
+"""
+URL configuration for smartassure project.
+
+The `urlpatterns` list routes URLs to views. For more information please see:
+    https://docs.djangoproject.com/en/5.2/topics/http/urls/
+Examples:
+Function views
+    1. Add an import:  from my_app import views
+    2. Add a URL to urlpatterns:  path('', views.home, name='home')
+Class-based views
+    1. Add an import:  from other_app.views import Home
+    2. Add a URL to urlpatterns:  path('', Home.as_view(), name='home')
+Including another URLconf
+    1. Import the include() function: from django.urls import include, path
+    2. Add a URL to urlpatterns:  path('blog/', include('blog.urls'))
+"""
+from django.contrib import admin
+from rest_framework_simplejwt.views import (
+    TokenObtainPairView,
+    TokenRefreshView,
+)
+from django.urls import path, include
+
+urlpatterns = [
+    path('admin/', admin.site.urls),
+    path('auth/', include('authentification.urls') ),
+    path('corps/', include('company.urls')),
+    path('products/', include('insuranceproduct.urls')),
+    path('contract/', include('contract.urls')),
+    path('api/token/', TokenObtainPairView.as_view(), name='token_obtain_pair'),   # login: returns access + refresh
+    path('api/token/refresh/', TokenRefreshView.as_view(), name='token_refresh'),
+]
