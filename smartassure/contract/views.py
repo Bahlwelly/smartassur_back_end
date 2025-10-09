@@ -8,7 +8,8 @@ from rest_framework.response import Response
 from rest_framework import status
 from django.db.models.signals import post_save
 from django.dispatch import receiver
-from django.core.mail import send_mail
+from django.core.mail import send_mail, BadHeaderError
+import smtplib
 from django.conf import settings
 
 # Create your views here.
@@ -25,12 +26,18 @@ def createContract (requst) :
         managers = company.managers.all()
         manager_email = managers.values_list('email', flat=True)
 
-        send_mail(
-            "New Contract Signed",
-            f"For product {contract.product.name}. \nSigned by {contract.client.get_full_name()}\n Phone : {contract.client.telephone}\nEmail : {contract.client.email}\nDate : {contract.signed_at.strftime('%Y-%m-%d %H:%M:%S')} ",
-            settings.DEFAULT_FROM_EMAIL,
-            manager_email
-        )
+        try :
+
+            send_mail(
+                "New Contract Signed",
+                f"For product {contract.product.name}. \nSigned by {contract.client.get_full_name()}\n Phone : {contract.client.telephone}\nEmail : {contract.client.email}\nDate : {contract.signed_at.strftime('%Y-%m-%d %H:%M:%S')} ",
+                settings.DEFAULT_FROM_EMAIL,
+                [manager_email]
+            )
+        except (BadHeaderError, smtplib.SMTPException) as e :
+            return Response({
+                "message" : f"error while sending the email\n{e}"
+            })
 
         return Response(serializer.data, status=status.HTTP_201_CREATED)
     
@@ -54,13 +61,18 @@ def updateContract (request, pk) :
             contract = serializer.save()
             client_email = contract.client.email
             
-            send_mail(
-                f"Your Contract With {contract.company.name} has been updated",
-                f"For product {contract.product.name}. \nSigned by {contract.client.get_full_name()}\n Phone : {contract.client.telephone}\nEmail : {contract.client.email}\nDate : {contract.signed_at.strftime('%Y-%m-%d %H:%M:%S')} ",
-                settings.DEFAULT_FROM_EMAIL,
-                client_email
-            )
-            return Response(serializer.data, status=status.HTTP_200_OK)
+            try :
+                send_mail(
+                    f"Your Contract With {contract.product.company.name} has been updated",
+                    f"Your contract is {contract.status.capitalize()}",
+                    settings.DEFAULT_FROM_EMAIL,
+                    [client_email]
+                )
+                return Response(serializer.data, status=status.HTTP_200_OK)
+            except (BadHeaderError, smtplib.SMTPException) as e :
+                return Response({
+                    "message" : f"error while sending the email\n{e}"
+                })
         
         return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
     

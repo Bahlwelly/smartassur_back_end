@@ -1,5 +1,5 @@
 from django.shortcuts import render
-from .models import Company, InsuranceCategory
+from .models import Company, InsuranceCategory, ManagerInvite
 from .serializers import CompanySerializer, InsuranceCategorySerializer
 from  rest_framework.decorators import api_view, permission_classes
 from authentification.permissions import IsAdmin, IsManager, IsClient
@@ -88,7 +88,7 @@ def delete_comapny (request, pk) :
 
 
 @api_view(['get'])
-@permission_classes([AllowAny])
+@permission_classes([IsAdmin])
 def get_all_companies (request) :
     companies = Company.objects.all()
     serializer = CompanySerializer(companies, many=True, context={'request' : request})
@@ -126,3 +126,16 @@ def addCategorie (request) :
     
     return Response( serializer.errors ,status=status.HTTP_400_BAD_REQUEST)
 
+
+
+@api_view(['post'])
+@permission_classes([IsAdmin | IsManager])
+
+def inviteManager (request, company_id) :
+    user = request.user
+    if user.company != company_id :
+        return Response({
+            "error" : "You're not authorized to invite this member"
+        }, status=status.HTTP_403_FORBIDDEN)
+    
+    invite = ManagerInvite.objects.create(company = company_id)
