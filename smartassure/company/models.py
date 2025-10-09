@@ -22,3 +22,6 @@ class Company (models.Model) :
     categories = models.ManyToManyField(InsuranceCategory, related_name='companies_categories')
     created_at = models.DateTimeField(auto_now_add=True)
     updated_at = models.DateTimeField(auto_now_add=True)
+
+    def __str__(self):
+        return self.name

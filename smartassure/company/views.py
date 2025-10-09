@@ -5,6 +5,7 @@ from  rest_framework.decorators import api_view, permission_classes
 from authentification.permissions import IsAdmin, IsManager, IsClient
 from rest_framework.response import Response
 from rest_framework import status
+from rest_framework.permissions import AllowAny
 
 # Create your views here.
 @api_view(['post'])
@@ -87,10 +88,10 @@ def delete_comapny (request, pk) :
 
 
 @api_view(['get'])
-@permission_classes([IsAdmin | IsClient])
+@permission_classes([AllowAny])
 def get_all_companies (request) :
     companies = Company.objects.all()
-    serializer = CompanySerializer(companies, many=True)
+    serializer = CompanySerializer(companies, many=True, context={'request' : request})
 
     return Response(serializer.data, status=status.HTTP_200_OK)
 
