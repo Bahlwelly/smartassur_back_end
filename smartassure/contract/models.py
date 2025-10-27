@@ -18,12 +18,20 @@ class Contract (models.Model) :
                             ],
                             default='pending'  
                               )
+    type = models.CharField(max_length=100, blank=True)
     signed_at = models.DateTimeField(auto_now_add=True)
     start_date = models.DateField(null=True, blank=True)
     end_date = models.DateField(null=True, blank=True)
     updated_at = models.DateTimeField(auto_now_add=True)
     notified = models.BooleanField(default=False)
+    viewed = models.BooleanField(default=False)
 
     def expired (self) :
         return timezone.now() >= self.end_date
     
+    def save(self, *args, **kwargs):
+        if not self.type and self.product:
+            main_category = self.product.category.filter(id__gte=3, id__lte=8).first()
+            if main_category:
+                self.type = main_category.name
+        super().save(*args, **kwargs)

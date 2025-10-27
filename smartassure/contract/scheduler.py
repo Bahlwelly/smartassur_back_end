@@ -17,6 +17,7 @@ def send_expiration_email () :
             )
 
             contract.notified = True
+            contract.status = 'expired'
             contract.save()
             print(f"Email was sent to {contract.client.email}")
             

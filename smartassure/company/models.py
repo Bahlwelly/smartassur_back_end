@@ -31,9 +31,10 @@ class Company (models.Model) :
 
     
 def expires_date () :
-    return lambda : timezone.now() + timedelta(days=3)
+    return lambda : timezone.now() + timedelta(days=2)
 
 class ManagerInvite (models.Model) :
+    manager = models.ForeignKey(User, on_delete=models.CASCADE, null=True, blank=True)
     company = models.ForeignKey(Company, on_delete=models.CASCADE)
     token = models.UUIDField(default=uuid.uuid4, unique=True)
     created_at = models.DateTimeField(auto_now_add=True)

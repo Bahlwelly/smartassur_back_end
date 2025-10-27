@@ -6,6 +6,11 @@ from authentification.permissions import IsAdmin, IsManager, IsClient
 from rest_framework.response import Response
 from rest_framework import status
 from rest_framework.permissions import AllowAny
+import smtplib
+from django.conf import settings
+from django.core.mail import send_mail, BadHeaderError
+from insuranceproduct.serializers import IPSerializer
+from contract.serializers import ContractSerializer, Contract
 
 # Create your views here.
 @api_view(['post'])
@@ -102,7 +107,7 @@ def get_all_companies (request) :
 def get_company_details (request, pk) :
     company = Company.objects.get(pk=pk)
     if company == request.user.company :
-        serializer = CompanySerializer(company)
+        serializer = CompanySerializer(company , context={"request" : request})
         return Response(serializer.data, status=status.HTTP_200_OK)
 
     return Response({
@@ -131,11 +136,52 @@ def addCategorie (request) :
 @api_view(['post'])
 @permission_classes([IsAdmin | IsManager])
 
-def inviteManager (request, company_id) :
+def inviteManager (request, company_id, manager_id) :
     user = request.user
     if user.company != company_id :
         return Response({
             "error" : "You're not authorized to invite this member"
         }, status=status.HTTP_403_FORBIDDEN)
     
-    invite = ManagerInvite.objects.create(company = company_id)
+    invite = ManagerInvite.objects.create(company = company_id, manager=manager_id)
+    try :
+        send_mail(
+            f"You are invited to be a manager of {invite.company.name}",
+            "The company {invite.company.name} have send you this token to register you as a new manager pleas folow the link below to porced\ntoken : {invite.token}\nconfirmatio page : https://confirm_token.com",
+            settings.DEFAULT_FROM_EMAIL,
+            invite.manager.email
+        )
+        return Response({"massege" : "Invite sent"}, status=status.HTTP_200_OK)
+    except (BadHeaderError, smtplib.SMTPException) as e :
+        return Response({"massege" : "Error while sending the email"}, status=status.HTTP_400_BAD_REQUEST)
+
+
+
+@api_view(['GET'])
+@permission_classes([AllowAny])
+
+def companyProducts (request, company_id) :
+    try : 
+        company = Company.objects.get(pk=company_id)
+    except Company.DoesNotExist :
+        return Response({"error" : "Company Doesnt exist"}, status=status.HTTP_404_NOT_FOUND)
+    
+    products = company.products.all()
+    serializer = IPSerializer(products, many=True)
+
+    return Response(serializer.data, status=status.HTTP_200_OK)
+
+
+@api_view(['GET'])
+@permission_classes([AllowAny])
+def companyContracts (request, company_id) :
+    try : 
+        company = Company.objects.get(pk=company_id)
+    except Company.DoesNotExist :
+        return Response({"error" : "Company Doesnt exist"}, status=status.HTTP_404_NOT_FOUND)
+    
+    products = company.products.all()
+    contracts = Contract.objects.filter(product__in =products)
+
+    serializer = ContractSerializer(contracts, many=True)
+    return Response(serializer.data, status=status.HTTP_200_OK)

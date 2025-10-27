@@ -6,11 +6,12 @@ from rest_framework.permissions import AllowAny
 from authentification.permissions import IsAdmin, IsManager
 from rest_framework.response import Response
 from rest_framework import status
-from django.db.models.signals import post_save
 from django.dispatch import receiver
 from django.core.mail import send_mail, BadHeaderError
 import smtplib
+from authentification.models import User
 from django.conf import settings
+from company.serializers import CompanySerializer
 
 # Create your views here.
 
@@ -24,7 +25,7 @@ def createContract (requst) :
        
         company = contract.product.company
         managers = company.managers.all()
-        manager_email = managers.values_list('email', flat=True)
+        manager_email = list(managers.values_list('email', flat=True))
 
         try :
 
@@ -32,7 +33,7 @@ def createContract (requst) :
                 "New Contract Signed",
                 f"For product {contract.product.name}. \nSigned by {contract.client.get_full_name()}\n Phone : {contract.client.telephone}\nEmail : {contract.client.email}\nDate : {contract.signed_at.strftime('%Y-%m-%d %H:%M:%S')} ",
                 settings.DEFAULT_FROM_EMAIL,
-                [manager_email]
+                manager_email
             )
         except (BadHeaderError, smtplib.SMTPException) as e :
             return Response({
@@ -56,6 +57,8 @@ def updateContract (request, pk) :
         }, status=status.HTTP_404_NOT_FOUND)
     
     if contract.product.company == request.user.company :
+        contract.viewed = False
+        contract.save()
         serializer = ContractSerializer(contract, data = request.data , partial=True)
         if serializer.is_valid() :
             contract = serializer.save()
@@ -97,8 +100,40 @@ def getAllContracts (request) :
 
         return Response(serializer.data, status=status.HTTP_200_OK)
     
-    else :
-        contracts = Contract.objects.filter(client = request.user)
-        serializer = ContractSerializer(contracts, many=True)
 
+
+@api_view(['GET'])
+@permission_classes([AllowAny])
+
+def getUserContracts (request, user_id) :
+    try : 
+        user = User.objects.get(id=user_id)
+    except user.DoesNotExist :
+        return Response({
+            "error" : "User does not exist"
+        }, status=status.HTTP_404_NOT_FOUND)
+    
+
+    contracts = Contract.objects.filter(client = user)
+    if contracts :
+        serializer = ContractSerializer(contracts, many=True)
         return Response(serializer.data, status=status.HTTP_200_OK)
+    
+    return Response({
+        "error" : "User has no contracts"
+    }, status=status.HTTP_404_NOT_FOUND)
+    
+
+@api_view(['GET'])
+@permission_classes([AllowAny])
+
+def contractCompany (request, contract_id) :
+    try:
+        contract = Contract.objects.get(pk=contract_id)
+    except Contract.DoesNotExist:
+        return Response({"error": "Contract does not exist"}, status=status.HTTP_404_NOT_FOUND)
+    
+    company = contract.product.company
+    serializer = CompanySerializer(company, context={"request" : request})
+
+    return Response (serializer.data, status=status.HTTP_200_OK)

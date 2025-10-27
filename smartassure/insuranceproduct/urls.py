@@ -7,4 +7,5 @@ urlpatterns = [
     path('add/', createIP, name='createIP'),
     path('add/<int:pk>', updateIP, name='updateIP'),
     path('delete/<int:pk>', deleteIP, name='delelteIP'),
+    path('company/<int:product_id>', getIPCompany, name='IPCompany')
 ]

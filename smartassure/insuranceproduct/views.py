@@ -6,6 +6,7 @@ from rest_framework import status
 from .models import InsuranceProduct
 from authentification.permissions import IsManager, IsAdmin
 from rest_framework.permissions import AllowAny
+from company.serializers import CompanySerializer
 
 # Create your views here.
 @api_view(['post'])
@@ -97,3 +98,15 @@ def deleteIP (request, pk) :
     return Response ({
         "error" : "You are not allowed to delete this"
     }, status=status.HTTP_403_FORBIDDEN)
+
+
+@api_view(['GET'])
+@permission_classes([AllowAny])
+def getIPCompany (request, product_id) :
+    try :
+        ip = InsuranceProduct.objects.get(pk=product_id)
+    except InsuranceProduct.DoesNotExist : 
+        return Response({"error" : "Product doesnt exist"}, status=status.HTTP_404_NOT_FOUND)
+    
+    serializer = CompanySerializer(ip.company , context={"request" : request})
+    return Response(serializer.data, status=status.HTTP_200_OK)
