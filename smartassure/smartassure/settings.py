@@ -168,12 +168,13 @@ CORS_ALLOW_CREDENTIALS = True
 
 CORS_ALLOWED_ORIGINS = [
     "http://localhost:4200",
-    "http://192.168.100.80:4200",
+    "http://192.168.100.190:4200",
 ]
+
 
 CSRF_TRUSTED_ORIGINS = [
     "http://localhost:4200",
-    "http://192.168.100.80:4200",
+    "http://192.168.100.190:4200",
 ]
 
 MEDIA_URL = '/media/'

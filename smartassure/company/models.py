@@ -14,9 +14,16 @@ class InsuranceCategory (models.Model) :
 
 
 class Company (models.Model) :
-    name = models.CharField(max_length=255)
+    lang_original = models.CharField(max_length=5, default='en')
+    name_ar = models.CharField(max_length=255, null=True, blank=True)
+    name_en = models.CharField(max_length=255,null=True, blank=True)
+    name_fr = models.CharField(max_length=255,null=True, blank=True)
+    name_original = models.CharField(max_length=255,)
     logo = models.ImageField(upload_to='logos/', null=True, blank=True)
-    description = models.TextField()
+    description_original = models.TextField()
+    description_en = models.TextField(null=True, blank=True)
+    description_fr = models.TextField(null=True, blank=True)
+    description_ar = models.TextField( null=True, blank=True)
     website = models.URLField(blank=True)
     email = models.EmailField() 
     phone = models.CharField(max_length=8)

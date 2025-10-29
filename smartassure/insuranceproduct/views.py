@@ -7,6 +7,7 @@ from .models import InsuranceProduct
 from authentification.permissions import IsManager, IsAdmin
 from rest_framework.permissions import AllowAny
 from company.serializers import CompanySerializer
+from .translation import translate_text
 
 # Create your views here.
 @api_view(['post'])
@@ -19,6 +20,32 @@ def createIP (request) :
     
     data = request.data.copy()
     data['company'] = request.user.company.id
+    name = data.get('name_original')
+    description = data.get('description_original')
+
+    if not name or not description :
+        return Response({"message" : "the name and the description are required"}, status=status.HTTP_400_BAD_REQUEST)
+    
+    translations = {
+        'name_en' : translate_text(name, 'en'),
+        'name_ar' : translate_text(name, 'ar'),
+        'name_fr' : translate_text(name, 'fr'),
+
+        'description_en' : translate_text(description, 'en'),
+        'description_fr' : translate_text(description, 'fr'),
+        'description_ar' : translate_text(description, 'ar'),
+    }
+
+    data.update({
+        'description_en' : translations["description_en"],
+        'description_fr' : translations["description_fr"],
+        'description_ar' : translations["description_ar"],
+
+        'name_en' : translations["name_en"],
+        'name_fr' : translations["name_fr"],
+        'name_ar' : translations["name_ar"],
+    })
+
 
     serializer = IPSerializer(data = data)
     if serializer.is_valid() :

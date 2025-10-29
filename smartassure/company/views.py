@@ -11,12 +11,41 @@ from django.conf import settings
 from django.core.mail import send_mail, BadHeaderError
 from insuranceproduct.serializers import IPSerializer
 from contract.serializers import ContractSerializer, Contract
+from .translation import translate_text
 
 # Create your views here.
 @api_view(['post'])
 @permission_classes([IsAdmin | IsManager])
 def addCompanyView (request) :
-    serializer = CompanySerializer(data = request.data)
+    data = request.data.copy()
+    name = data.get('name_original')
+    description = data.get('description_original')
+
+    if not name or not description :
+        return Response({"message" : "the name and the description are required"}, status=status.HTTP_400_BAD_REQUEST)
+    
+    translations = {
+        'name_en' : translate_text(name, 'en'),
+        'name_ar' : translate_text(name, 'ar'),
+        'name_fr' : translate_text(name, 'fr'),
+
+        'description_en' : translate_text(description, 'en'),
+        'description_fr' : translate_text(description, 'fr'),
+        'description_ar' : translate_text(description, 'ar'),
+    }
+
+    data.update({
+        'description_en' : translations["description_en"],
+        'description_fr' : translations["description_fr"],
+        'description_ar' : translations["description_ar"],
+
+        'name_en' : translations["name_en"],
+        'name_fr' : translations["name_fr"],
+        'name_ar' : translations["name_ar"],
+    })
+
+
+    serializer = CompanySerializer(data = data)
 
     if serializer.is_valid() : 
         company = serializer.save()
@@ -26,8 +55,12 @@ def addCompanyView (request) :
         return Response({
             "message" : "new company added successfully",
             "company" : {
-                "name" : company.name,
-                "description" : company.description,
+                "name_en" : company.name_en,
+                "name_fr" : company.name_fr,
+                "name_ar" : company.name_ar,
+                "description_en" : company.description_en,
+                "description_ar" : company.description_ar,
+                "description_fr" : company.description_fr,
                 "location" : company.location,
                 "website" : company.website,
                 "phone" : company.phone,
